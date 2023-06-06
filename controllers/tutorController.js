@@ -35,7 +35,6 @@ exports.signup = async (req, res, next) => {
   }
 };
 
-
 exports.createClassroom = async (req, res, next) => {
   try {
     const errors = validationResult(req);
