@@ -1,25 +1,30 @@
 const express = require("express");
 const Product = require("../models/productModel");
-const User = require("../models/userModel");
+// const User = require("../models/userModel");
+const jwt = require('jsonwebtoken')
+const User = require('../models/userModel')
+
+const passport = require("passport");
+const authenticate = require("../middlewares/auth");
 
 const router = express.Router();
+
+
+
+
+
 router.post("/signup", async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      const error = new Error("A user with this email already exists");
-      error.statusCode = 409;
-      error.type = "email";
-      throw error;
-    }
-    const user = new User({
-      name,
-      email,
-      password,
+    User.register(new User({ name, email }), password, (err, user) => {
+      if (err) {
+        console.log(err)
+        res.status(500).json({ error: "Error registering new user" });
+      } else {
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+        res.json({ token });
+      }
     });
-    const newUser = await user.save();
-    res.status(201).json({ message: "Success Creating user", user: newUser });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -27,7 +32,28 @@ router.post("/signup", async (req, res, next) => {
     next(err);
   }
 });
-router.post("/product", async (req, res, next) => {
+router.post("/login", async (req, res, next) => {
+  passport.authenticate(
+    "local",
+    { session: false },
+    async (err, user, info) => {
+      try {
+        if (err || !user) {
+          // Authentication failed
+          return res.status(401).json({ error: "Authentication failed" });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+
+        res.status(200).json({ token,userId:user._id });
+      } catch (err) {
+        next(err);
+      }
+    }
+  )(req, res, next);
+});
+router.post("/product",passport.authenticate('jwt', { session: false }), async (req, res, next) => {
   try {
     const { title, price, description, quantity, color, userId } = req.body;
     const user = await User.findById(userId);
@@ -59,7 +85,7 @@ router.post("/product", async (req, res, next) => {
     next(err);
   }
 });
-router.get("/products/:userId", async (req, res, next) => {
+router.get("/products/:userId",authenticate.verifyUser, async (req, res, next) => {
   try {
     const userId = req.params.userId;
     const user = await User.findById(userId).populate("products");
@@ -74,7 +100,7 @@ router.get("/products/:userId", async (req, res, next) => {
     next(error);
   }
 });
-router.get("/product/:productId", async (req, res, next) => {
+router.get("/product/:productId",authenticate.verifyUser, async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.productId);
     res.status(200).json({
@@ -90,7 +116,7 @@ router.get("/product/:productId", async (req, res, next) => {
     next(error);
   }
 });
-router.put("/product/:productId", async (req, res, next) => {
+router.put("/product/:productId",authenticate.verifyUser, async (req, res, next) => {
   try {
     const { productId } = req.params;
     const { title, price, description, quantity, userId, status, color } =
@@ -134,7 +160,7 @@ router.put("/product/:productId", async (req, res, next) => {
     next(error);
   }
 });
-router.patch("/product/:productId", async (req, res, next) => {
+router.patch("/product/:productId",authenticate.verifyUser, async (req, res, next) => {
   try {
     const { productId } = req.params;
     const { title, price, description, quantity, userId, status, color } =
@@ -177,7 +203,7 @@ router.patch("/product/:productId", async (req, res, next) => {
     next(error);
   }
 });
-router.delete("/product/:productId", async (req, res, next) => {
+router.delete("/product/:productId",authenticate.verifyUser, async (req, res, next) => {
   try {
     const { productId } = req.params;
     const product = await Product.findById(productId);

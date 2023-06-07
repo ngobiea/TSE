@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Product = require("../models/productModel");
+const authenticate = require("../middlewares/auth");
 
 
-router.post("/setItemDetails", async (req, res, next) => {
+router.post("/setItemDetails",authenticate.verifyUser, async (req, res, next) => {
   try {
     const { productId, quantity } = req.body;
     req.session.isLoggedIn = true;
