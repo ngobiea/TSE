@@ -100,6 +100,25 @@ router.get("/products/:userId",authenticate.verifyUser, async (req, res, next) =
     next(error);
   }
 });
+router.get(
+  "/carts/:userId",
+  authenticate.verifyUser,
+  async (req, res, next) => {
+    try {
+      const userId = req.params.userId;
+      const user = await User.findById(userId).populate("cart.items");
+      res.status(200).json({
+        status: "success",
+        cartItems: user.cart.items,
+      });
+    } catch (error) {
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      next(error);
+    }
+  }
+);
 router.get("/product/:productId",authenticate.verifyUser, async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.productId);

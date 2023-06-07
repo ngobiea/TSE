@@ -7,7 +7,6 @@ const helmet = require("helmet");
 const session = require("express-session");
 const FileStore = require("session-file-store")(session);
 let passport = require('passport')
-let auth = require('./middlewares/auth')
 
 
 
